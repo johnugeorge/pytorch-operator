@@ -60,8 +60,10 @@ func (pc *PyTorchController) addPyTorchJob(obj interface{}) {
 			client, err := k8sutil.NewCRDRestClient(&v1alpha2.SchemeGroupVersion)
 
 			if err == nil {
-				metav1unstructured.SetNestedField(un.Object, statusMap, "status")
-				logger.Infof("Updating the job to; %+v", un.Object)
+				if errSet := metav1unstructured.SetNestedField(un.Object, statusMap, "status"); errSet != nil {
+					logger.Errorf("Could not set nested field: %v", errSet)
+				}
+				logger.Infof("Updating the job to: %+v", un.Object)
 				err = client.Update(un, v1alpha2.Plural)
 				if err != nil {
 					logger.Errorf("Could not update the PyTorchJob; %v", err)
@@ -153,7 +155,7 @@ func (pc *PyTorchController) cleanupPyTorchJob(job *v1alpha2.PyTorchJob) error {
 	return nil
 }
 
-// deletePyTorchJob delets the given PyTorchJob.
+// deletePyTorchJob deletes the given PyTorchJob.
 func (pc *PyTorchController) deletePyTorchJob(job *v1alpha2.PyTorchJob) error {
 	return pc.jobClientSet.KubeflowV1alpha2().PyTorchJobs(job.Namespace).Delete(job.Name, &metav1.DeleteOptions{})
 }
